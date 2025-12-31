@@ -1,109 +1,70 @@
-zohar_matt,amit_tzur1
-206978793,314634387
+# ASCII Art Generator
 
-3.2.1 - 
-Package: ascii_art.
-    Shell - Controls the program and user input. It has a SubImgCharMatcher field to manage characters and
-    creates Image and AsciiArtAlgorithm instances to run the art generation.
-    It also uses ConsoleAsciiOutput ornHtmlAsciiOutput (via the AsciiOutput interface) to print the results.
+A robust Java-based Command Line Interface (CLI) application that transforms standard images (JPG, PNG) into artistic ASCII representations. This project utilizes luminance-based brightness mapping, efficient data structures for character matching, and a modular package-based architecture.
 
-    AsciiArtAlgorithm - Runs the logic to convert an image. It holds fields for Image and SubImgCharMatcher
-    to get data from them. It creates an ImageProcessing instance to split the image into smaller parts.
+---
 
-    UsageException - A simple error class. The Shell creates and throws this exception when a user command is
-    wrong, and then catches it to print a message.
+## 🏗️ System Architecture
 
-    KeyboardInput - helper for reading text.
-    The Shell calls its readLine() method to get commands from the user.
-    Supplied by the instructor.
+The project is structured into distinct packages to ensure a separation of concerns and maintainable code:
 
-Package: image.
-    Image - Represents the image file in memory. It is created by Shell and passed to both ImageProcessing
-    and AsciiArtAlgorithm so they can read its pixel data.
+### **`ascii_art`**
 
-    ImageProcessing - Prepares the image for conversion. It holds the Image object as a field and calls its
-    getPixel method to calculate brightness and split the image into sub-images.
+* **`Shell`**: The primary controller that manages user input and orchestrates the art generation process. It utilizes a `SubImgCharMatcher` to manage the active character set and interfaces with `Image` and `AsciiArtAlgorithm`.
+* **`AsciiArtAlgorithm`**: Implements the core conversion logic, coordinating data from the image and the character matcher to produce the final grid.
+* **`UsageException`**: A custom exception class used to handle and report logical errors in user commands.
+* **`KeyboardInput`**: A utility class provided for reading user input streams.
 
-Package: image_char_matching.
-    CharConverter - A utility tool. It is called only by SubImgCharMatcher to turn a character into a grid of
-    pixels for analysis. Supplied by the instructor.
+### **`image`**
 
-    SubImgCharMatcher - Matches brightness values to characters. It calls CharConverter.convertToBoolArray to
-    calculate the initial brightness of each character. Both Shell and AsciiArtAlgorithm use this class to
-    manage and retrieve characters.
+* **`Image`**: Represents the image file in memory, providing pixel-level data access.
+* **`ImageProcessing`**: Prepares the image by partitioning it into sub-images and calculating the average luminance/brightness of each segment.
 
-Package: ascii_output. Supplied by the instructor.
-    AsciiOutput (interface) - An interface for outputting ASCII art. It has a single method, outputAsciiArt,
-    which takes a 2D array of characters as input.
+### **`image_char_matching`**
 
-    ConsoleAsciiOutput - Implements AsciiOutput to print ASCII art to the console. The Shell creates an
-    instance of this class when the user wants console output.
+* **`SubImgCharMatcher`**: Matches specific brightness values to characters. It calculates initial character brightness using the provided `CharConverter`.
+* **`CharConverter`**: A utility that converts characters into a grid of pixels for visual weight analysis.
 
-    HtmlAsciiOutput - Implements AsciiOutput to generate an HTML file with ASCII art. The Shell creates an
-    instance of this class when the user wants HTML output.
+### **`ascii_output`**
 
+* **`AsciiOutput` (Interface)**: Defines the standard for outputting the generated art.
+* **`ConsoleAsciiOutput`**: Implements the interface to render art directly in the terminal.
+* **`HtmlAsciiOutput`**: Implements the interface to export the art as a high-quality HTML file.
 
-3.2.2 -
+---
 
-1) HashMap:
-    Used in SubImgCharMatcher (charToBrightnessMap and savedCharBrightnessData).
-    Provides O(1) average time complexity for put, get, and remove operations.
-    Used to store and retrieve the brightness value of specific characters quickly when adding, removing, or
-    normalizing.
+## 📊 Data Structures & Performance
 
-2) TreeMap:
-    Used in SubImgCharMatcher (brightnessMap)
-    Used in order to find the character with the brightness closest to a specific value. TreeMap stores keys
-    in sorted order and provides methods like floorKey and ceilingKey to find the nearest neighbors
-    efficiently.
-    Provides O(log n) time complexity for searching, insertion, and deletion, which is efficient for
-    finding the best matching character.
+To ensure the rendering process remains efficient even at high resolutions, the following data structures were utilized:
 
-3) TreeSet:
-    Used in SubImgCharMatcher (as values inside the TreeMap) and briefly in Shell (printCharset).
-    Provides O(log n) time complexity for insertion and O(n) for iteration in sorted order.
-    In SubImgCharMatcher: Handles cases where multiple characters have the same brightness. It keeps them
-    sorted by ASCII value, allowing us to easily pick the smallest one (as required).
-    In Shell: Used to print the character set in sorted order when displaying it to the user.
+| Structure | Component | Average Complexity | Justification |
+| --- | --- | --- | --- |
+| **`HashMap`** | `SubImgCharMatcher` |  O(1)| Used for rapid storage and retrieval of pre-calculated character brightness data. |
+| **`TreeMap`** | `SubImgCharMatcher` |  O(logn)| Enables the use of `floorKey` and `ceilingKey` to find the character with the brightness level closest to a target value. |
+| **`TreeSet`** | `SubImgCharMatcher` / `Shell` |O(logn)  | Manages characters with identical brightness, ensuring they are sorted by ASCII value for deterministic selection. |
+| **`2D Arrays`** | Core Logic | O(1) | Used for pixel data storage and image grid manipulation to provide constant-time access. |
 
-4) 2D Arrays (double[][], char[][], Color[][]):
-    Used in AsciiArtAlgorithm, Image, and ImageProcessing.
-    Provide O(1) access time for reading and writing pixel data.
-    Used to represent images and sub-images as grids of pixels, allowing efficient processing and
-    manipulation of image data.
+---
 
-3.2.3 -
-    We created a specific exception class named UsageException to represent logical errors in user commands
-    (such as incorrect formats or boundary violations).
+## ⚠️ Exception Handling & Logic
 
-    Instead of printing error messages directly inside helper methods (like setResolution or
-    removeAndAddOperation), these methods detect invalid input and throw a UsageException containing the
-    specific error message constant (for example: "Did not change resolution due to exceeding boundaries.").
+* **Custom Exceptions**: The `UsageException` class is used to wrap logical errors such as incorrect command formats or resolution boundary violations.
+* **Decoupled Error Reporting**: Logic for detecting errors is separated from the printing logic. Helper methods throw exceptions which are then caught by the main `run` loop in the `Shell` to provide user-friendly feedback without crashing the program.
+* **Graceful Termination**: File-related errors (`IOException`) are caught during image loading to inform the user and terminate the program safely.
 
-    The main run loop wraps the command execution logic in a try-catch block. When a UsageException is
-    thrown, it is caught in the run method, which then prints the exception's message (e.getMessage()) to the
-    console. We also included a generic catch for other exceptions to handle unexpected errors gracefully.
+---
 
-    This design separates the logic of detecting an error from the responsibility of printing it, ensuring
-    the Shell keeps running without crashing.
+## 🔄 Key Design Choices
 
-    In case of an error during opening an image file, we catch the IOException in the run method and print a
-    specific error message ("Error: Could not open image file.") to inform the user about the issue, and then
-    terminate the program gracefully - according to the requirements.
+* **Single Source of Truth**: We implemented the `getCharSet()` method in `SubImgCharMatcher`. This allows the `Shell` to access the active characters for both display and processing without maintaining a redundant (and potentially inconsistent) list.
+* **Extensibility**: By following the `AsciiOutput` interface and using a modular algorithm, the system can easily be extended to support new output formats or conversion methods.
 
-3.2.4 -
-    We added the public method getCharSet() to SubImgCharMatcher.
+---
 
-    The Shell class needs to access the active characters for two reasons: to print them when the user types
-    the chars command, and to pass the current set to the AsciiArtAlgorithm for processing.
+### **Project Information**
 
-    This new design maintains single source of truth. SubImgCharMatcher is responsible for
-    managing the characters. By exposing them via a method, We avoided maintaining a duplicate list of
-    characters in the Shell, which prevents data inconsistency and redundancy. That's more efficient in
-    space complexity and cleaner.
-
-3.2.5 -
-    We did not change the provided code in any of the supplied classes or interfaces.
-
-
+* **Course**: Object-Oriented Programming (67109)
+* **Institution**: Hebrew University of Jerusalem
+* **Authors**: Amit Tzur & Zohar Mattatia
+* **Date**: 2025
 
